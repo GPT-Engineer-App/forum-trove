@@ -1,0 +1,335 @@
+// src/pages/Index.jsx
+import React, { useState, useEffect } from "react";
+import { Box, Heading, Text, Link, Button, Flex, Spacer, Input, Textarea, useToast } from "@chakra-ui/react";
+import { FaPlus, FaArrowUp, FaArrowDown, FaComment } from "react-icons/fa";
+
+const Index = () => {
+  const [stories, setStories] = useState([]);
+  const [page, setPage] = useState(1);
+  const [view, setView] = useState("top");
+  const [user, setUser] = useState(null);
+  const [title, setTitle] = useState("");
+  const [link, setLink] = useState("");
+  const [text, setText] = useState("");
+  const toast = useToast();
+
+  useEffect(() => {
+    fetchStories();
+  }, [page, view]);
+
+  const fetchStories = async () => {
+    // Mock API call to fetch stories based on page and view
+    const response = await fetch(`/api/stories?page=${page}&view=${view}`).then((res) => res.json());
+    setStories(response.stories);
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    // Mock API call to login user
+    const response = await fetch("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }).then((res) => res.json());
+    if (response.user) {
+      setUser(response.user);
+      toast({
+        title: "Logged in successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else {
+      toast({
+        title: "Invalid username or password",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    // Mock API call to register user
+    const response = await fetch("/api/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }).then((res) => res.json());
+    if (response.user) {
+      setUser(response.user);
+      toast({
+        title: "Registered successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } else {
+      toast({
+        title: "Username already exists",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      toast({
+        title: "Please login to submit a story",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (link && text) {
+      toast({
+        title: "Please provide either a link or text, not both",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    // Mock API call to submit story
+    const response = await fetch("/api/submit", {
+      method: "POST",
+      body: JSON.stringify({ title, link, text, user }),
+    }).then((res) => res.json());
+    if (response.success) {
+      setTitle("");
+      setLink("");
+      setText("");
+      toast({
+        title: "Story submitted successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setView("newest");
+      setPage(1);
+    } else {
+      toast({
+        title: "Error submitting story",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleVote = async (id, type) => {
+    if (!user) {
+      toast({
+        title: "Please login to vote",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    // Mock API call to vote on story
+    const response = await fetch(`/api/vote/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ user, type }),
+    }).then((res) => res.json());
+    if (response.success) {
+      fetchStories();
+    } else {
+      toast({
+        title: "Error voting on story",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleComment = async (id, text) => {
+    if (!user) {
+      toast({
+        title: "Please login to comment",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    // Mock API call to comment on story
+    const response = await fetch(`/api/comment/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ user, text }),
+    }).then((res) => res.json());
+    if (response.success) {
+      toast({
+        title: "Comment submitted successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      fetchStories();
+    } else {
+      toast({
+        title: "Error submitting comment",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  return (
+    <Box>
+      <Flex bg="blue.500" p={4} color="white">
+        <Box>
+          <Heading size="md">AI News</Heading>
+        </Box>
+        <Spacer />
+        <Box>
+          {user ? (
+            <Text>Welcome, {user.username}</Text>
+          ) : (
+            <>
+              <Link href="/login" mr={4}>
+                Login
+              </Link>
+              <Link href="/register">Register</Link>
+            </>
+          )}
+        </Box>
+      </Flex>
+
+      <Flex m={4}>
+        <Box>
+          <Link href="/" mr={4}>
+            Top
+          </Link>
+          <Link href="/newest">New</Link>
+        </Box>
+        <Spacer />
+        <Box>
+          <Link href="/submit">
+            <Button leftIcon={<FaPlus />}>Submit</Button>
+          </Link>
+        </Box>
+      </Flex>
+
+      {view === "submit" && (
+        <Box m={4}>
+          <Heading size="lg" mb={4}>
+            Submit a Story
+          </Heading>
+          <form onSubmit={handleSubmit}>
+            <Input placeholder="Title" mb={4} value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Input placeholder="Link" mb={4} value={link} onChange={(e) => setLink(e.target.value)} />
+            <Textarea placeholder="Text" mb={4} value={text} onChange={(e) => setText(e.target.value)} />
+            <Button type="submit">Submit</Button>
+          </form>
+        </Box>
+      )}
+
+      {view === "login" && (
+        <Box m={4}>
+          <Heading size="lg" mb={4}>
+            Login
+          </Heading>
+          <form onSubmit={handleLogin}>
+            <Input placeholder="Username" mb={4} value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <Input placeholder="Password" type="password" mb={4} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Button type="submit">Login</Button>
+          </form>
+          <Text mt={4}>
+            Don't have an account? <Link href="/register">Register</Link>
+          </Text>
+        </Box>
+      )}
+
+      {view === "register" && (
+        <Box m={4}>
+          <Heading size="lg" mb={4}>
+            Register
+          </Heading>
+          <form onSubmit={handleRegister}>
+            <Input placeholder="Username" mb={4} value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <Input placeholder="Password" type="password" mb={4} value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <Button type="submit">Register</Button>
+          </form>
+          <Text mt={4}>
+            Already have an account? <Link href="/login">Login</Link>
+          </Text>
+        </Box>
+      )}
+
+      {(view === "top" || view === "newest") && (
+        <Box m={4}>
+          {stories.map((story) => (
+            <Box key={story.id} mb={4}>
+              <Flex>
+                <Box mr={4}>
+                  <Button size="xs" onClick={() => handleVote(story.id, "upvote")}>
+                    <FaArrowUp />
+                  </Button>
+                  <Text fontSize="sm">{story.score}</Text>
+                  <Button size="xs" onClick={() => handleVote(story.id, "downvote")}>
+                    <FaArrowDown />
+                  </Button>
+                </Box>
+                <Box>
+                  <Link href={story.link || `/item/${story.id}`}>{story.title}</Link>
+                  <Text fontSize="sm">{story.link ? `(${new URL(story.link).hostname})` : ""}</Text>
+                  <Text fontSize="sm">
+                    {story.score} points by {story.user} {story.age} | <Link href={`/item/${story.id}`}>{story.comments} comments</Link>
+                  </Text>
+                </Box>
+              </Flex>
+            </Box>
+          ))}
+          <Button onClick={() => setPage(page + 1)}>More</Button>
+        </Box>
+      )}
+
+      {view === "item" && (
+        <Box m={4}>
+          <Heading size="lg" mb={4}>
+            {story.title}
+          </Heading>
+          {story.link && (
+            <Link href={story.link} mb={4}>
+              {story.link}
+            </Link>
+          )}
+          {story.text && <Text mb={4}>{story.text}</Text>}
+          <Text fontSize="sm">
+            {story.score} points by {story.user} {story.age} | <Link href={`/item/${story.id}`}>{story.comments} comments</Link>
+          </Text>
+
+          <Box mt={8}>
+            <Heading size="md" mb={4}>
+              Comments
+            </Heading>
+            {story.comments.map((comment) => (
+              <Box key={comment.id} mb={4}>
+                <Text fontSize="sm">
+                  {comment.user} {comment.age}
+                </Text>
+                <Text>{comment.text}</Text>
+              </Box>
+            ))}
+            <form onSubmit={(e) => handleComment(story.id, e)}>
+              <Textarea placeholder="Add a comment" mb={4} value={commentText} onChange={(e) => setCommentText(e.target.value)} required />
+              <Button type="submit">Comment</Button>
+            </form>
+          </Box>
+        </Box>
+      )}
+
+      <Box bg="gray.100" p={4} textAlign="center">
+        <Text>Built using GPT Pilot</Text>
+      </Box>
+    </Box>
+  );
+};
+
+export default Index;
